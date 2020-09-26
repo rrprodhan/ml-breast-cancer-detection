@@ -1,20 +1,26 @@
+import pandas as pd
+import numpy as np
+import csv
 from urllib.request import urlopen
 
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score
+
 with open("breast-cancer.data.csv", "w") as refactored_file:
+
+    theWriter = csv.writer(refactored_file)
+    theWriter.writerow(['class','age','menopause','tumor-size','inv-nodes','node-caps','deg-malig','breast','breast-quad','irradiat'])
+
     for line in urlopen("https://archive.ics.uci.edu/ml/machine-learning-databases/breast-cancer/breast-cancer.data"):
 
         #Cleaning up the whole dataset
         refactoredLine = line.decode('UTF-8')
-        print("\nLine: {}\n".format(refactoredLine))
         refactoredLine = refactoredLine.replace('?', '')
-        print("\nLine: {}\n".format(refactoredLine))
         refactoredLine = refactoredLine.replace('"', '')
-        print("\nLine: {}\n".format(refactoredLine))
         refactoredLine = refactoredLine.replace('\'', '')
         refactoredLine = refactoredLine.replace('_', '')
-        print("\nLine: {}\n".format(refactoredLine))
         refactoredLine = refactoredLine.lower()
-        print("\nLine: {}\n".format(refactoredLine))
 
         #Making all categorical type datas numeric
         #1.Class: no-recurrence-events = 0 & recurrence-events = 1
@@ -76,6 +82,24 @@ with open("breast-cancer.data.csv", "w") as refactored_file:
         refactoredLine = refactoredLine.replace('left', '0')
         refactoredLine = refactoredLine.replace('right', '1')
 
-        print(refactoredLine.strip())
         refactored_file.write(refactoredLine.strip() + '\n')
     refactored_file.close()
+
+breastCancerDataset = pd.read_csv("breast-cancer.data.csv")
+breastCancerDataset.fillna(breastCancerDataset.mean(), inplace=True) #Filling up all blank cells with mean of the particular column
+
+rfc = RandomForestClassifier(n_estimators=2000) #Will generate 2000 Trees for clssification
+train, test = train_test_split(breastCancerDataset, test_size=0.2) #80% train and 20% test data split
+train_features = train.iloc[:,1:10]
+train_target = train["class"]
+test_features = test.iloc[:,1:10]
+test_target = test["class"]
+rfc.fit(train_features,train_target)
+
+predicted_target = rfc.predict(test_features)
+
+print("Confusion matrix: \n")
+print(confusion_matrix(test_target,predicted_target))
+print("\nClassification report: \n")
+print(classification_report(test_target,predicted_target))
+print("Accuracy: {}".format(accuracy_score(test_target, predicted_target)))
